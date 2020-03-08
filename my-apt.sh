@@ -63,8 +63,38 @@ if [[ "$source" == *"s"* ]]; then
        fi                
     fi
   }
+ 
+  handle_errors2(){
+    echo running handle_errors2 
+    if (( $1 <= 1 )); then
+       echo called with 1
+    else
+       echo called with 2     
+       er=""
+       er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
+       if [[ $er ]]; then 
+         ##
+	 dep=$(cd $unzip_path; echo "" > d; echo "" > d_fin; sudo apt-cache depends $package > d; cat d | awk -F'Depends:' '{print $2}' > d_fin; cat d_fin )
+         echo depend on: $dep
+	 for X in $dep 
+	  do 
+	    sudo apt-get -y install $X	  
+	    #$(cd $unzip_path;
+	     # echo "" > d_o ; 
+	     # apt-file list $X > d_o ;
+	     # if [[ -s d_o ]] ; then sudo apt-get -y install $X ; else echo "$X is not a package" ; fi )	      
+         done  
+	 echo calling handle_errors2 with 2
+	 handle_errors2 2  
+         ##     
+       else 
+	 echo calling handle_errors2 with 1      
+         handle_errors2 1 
+       fi                
+    fi
+  }
 
-  handle_errors 2
+  handle_errors2 2
 
 #  er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
 #  if [[ $er ]]; then 
@@ -94,6 +124,8 @@ fi
 # install: sudo apt-get install apt-file
 # create local database: sudo apt-file update
 # search for file: apt-file search <filename>
+# sudo apt-get --purge remove flex
+# apt-cache depends package-name 
 
 # https://stackoverflow.com/questions/12137431/test-if-a-command-outputs-an-empty-string
 # https://unix.stackexchange.com/questions/3514/how-to-grep-standard-error-stream-stderr
