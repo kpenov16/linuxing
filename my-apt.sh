@@ -36,22 +36,56 @@ if [[ "$source" == *"s"* ]]; then
   unzip_path=$(echo $unzip_path | rev | cut -d " " -f1 | rev)
   echo second unzip_path $unzip_path
   
-  echo running ./configure
- # $(cd $unzip_path)
- #er=$(./configure 2> >(awk -F'error:' '{print $2}')) 
- er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
-  if [[ $er ]]; then 
-     echo "errors: " $er
-     echo "$er" | while IFS= read r line ; 
-		    do 
-		      for X in $line 
-		      do 
-			echo "$X" 
-		      done ; 
-		    done ;
-  else 
-      echo "no errors" 
-  fi
+
+  handle_errors(){
+    echo running handle_errors 
+    if (( $1 <= 1 )); then
+       echo called with 1
+    else
+       echo called with 2     
+       er=""
+       er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
+       if [[ $er ]]; then 
+         ##
+         for X in $er 
+	  do 
+	    $(cd $unzip_path;
+	      echo "" > o ; 
+	      apt-file list $X > o ;
+              if [[ -s o ]] ; then sudo apt-get update ; sudo apt-get -y install $X ; else echo "$X is not a package" ; fi )	      
+         done  
+	 echo calling handle_errors with 2
+	 handle_errors 2  
+         ##     
+       else 
+	 echo calling handle_errors with 1      
+         handle_errors 1 
+       fi                
+    fi
+  }
+
+  handle_errors 2
+
+#  er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
+#  if [[ $er ]]; then 
+#     # there are errors
+#     # we run: auto-apt run ./configure
+#     # auto-run should be installed beforehand
+#     #
+#     for X in $er 
+#	do 
+#	  $( cd $unzip_path;
+#	     echo "" > o ; 
+#	     apt-file list $X > o ;
+#             if [[ -s o ]] ; then sudo apt-get update ; sudo apt-get -y install $X ; else echo "$X is not a package" ; fi 
+#	   ) 
+#        done 
+#     #
+#     #
+#     
+#  else 
+#      echo "no errors" 
+#  fi
 
 
 fi
