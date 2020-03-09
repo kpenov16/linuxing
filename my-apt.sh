@@ -47,12 +47,14 @@ if [[ "$source" == *"s"* ]]; then
        er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
        if [[ $er ]]; then 
          ##
+	 sudo apt-get -y update 2> /dev/null
          for X in $er 
 	  do 
-	    $(cd $unzip_path;
-	      echo "" > o ; 
-	      apt-file list $X > o ;
-              if [[ -s o ]] ; then sudo apt-get update ; sudo apt-get -y install $X ; else echo "$X is not a package" ; fi )	      
+	    sudo apt-get -y install $X 2> /dev/null
+         # $(cd $unzip_path;
+	 #     echo "" > o ; 
+	 #     apt-file list $X > o ;
+         #     if [[ -s o ]] ; then sudo apt-get update ; sudo apt-get -y install $X ; else echo "$X is not a package" ; fi )	      
          done  
 	 echo calling handle_errors with 2
 	 handle_errors 2  
@@ -94,7 +96,7 @@ if [[ "$source" == *"s"* ]]; then
     fi
   }
 
-  handle_errors2 2
+  handle_errors 2
 
 #  er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
 #  if [[ $er ]]; then 
