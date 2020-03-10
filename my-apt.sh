@@ -97,6 +97,15 @@ if [[ "$source" == *"s"* ]]; then
   }
 
   handle_errors 2
+	
+  ##do make
+  echo executing make in: $unzip_path
+  cd $unzip_path && sudo make 
+
+  ##do checkinstall
+  echo executing checkinstall in: $unzip_path
+  cd $unzip_path && sudo checkinstall -y 
+
 
 #  er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
 #  if [[ $er ]]; then 
@@ -126,8 +135,21 @@ fi
 # install: sudo apt-get install apt-file
 # create local database: sudo apt-file update
 # search for file: apt-file search <filename>
+# apt-cache depends package-name
+
+#Done. The new package has been installed and saved to
+#
+# /usr/local/src/nmap-7.80/nmap_7.80-1_amd64.deb
+#
+# You can remove it from your system anytime using: 
+#
+#      dpkg -r nmap
+
 # sudo apt-get --purge remove flex
-# apt-cache depends package-name 
+ 
+
+
+
 
 # https://stackoverflow.com/questions/12137431/test-if-a-command-outputs-an-empty-string
 # https://unix.stackexchange.com/questions/3514/how-to-grep-standard-error-stream-stderr
