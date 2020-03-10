@@ -8,6 +8,9 @@ read -p 'Enter the download link: ' downloadLink
 
 echo package: $package, source: $source, downloadLink: $downloadLink
 
+## nmap .deb link
+# http://ftp.dk.debian.org/debian/pool/main/n/nmap/nmap_7.70+dfsg1-6_i386.deb 
+
 inst_path=/usr/local/src
 
 echo $(ls -ldh $inst_path | cut -d " " -f1) 
