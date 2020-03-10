@@ -83,9 +83,20 @@ if [[ "$source" == *"s"* ]]; then
 
 #we have a .deb file to install  
 else
+  pack_name=$(cd $inst_path && ls | grep '\.deb$' | grep $package | head -n1)
+  cd $inst_path && mkdir $pack_name
+  #pack_name_path="$inst_path/$pack_name"   
   pd=$(cd $inst_path; echo "" > pd_tmp && dpkg-deb -I nmap_7.70+dfsg1-6_i386.deb > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
   
-
+  echo missing libraries are installing..
+  sudo apt-get -y update 2> /dev/null
+  for X in $pd 
+    do 
+      sudo apt-get -y install $X 2> /dev/null ; 
+  done
+  
+  echo installing.. $pack_name
+  cd $inst_path && sudo dpkg -i $pack_name; #sudo apt-get -y install $pack_name
 
 fi
 
