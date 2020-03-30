@@ -1,48 +1,33 @@
 #!/bin/bash
+
+# new
 ## add user to sudoers 
-my_user=$(whoami | sed 's/ *$//')  # https://linuxhint.com/trim_string_bash/
+MY_USER=$(whoami | sed 's/ *$//')  # https://linuxhint.com/trim_string_bash/
                                    # https://stackoverflow.com/questions/3953645/ternary-operator-in-bash
-if [ "$my_user" != "root" ]; then
-  echo -ne "adding $my_user to sudoers"
-  echo "$my_user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$my_user stdout> /dev/null # https://linuxize.com/post/how-to-add-user-to-sudoers-in-ubuntu/  
-  sudo chmod 0440 /etc/sudoers.d/$my_user 
-  echo "$my_user added to sudoers"
+if [ "$MY_USER" != "root" ]; then
+  echo -ne "adding $MY_USER to sudoers"
+  echo "$MY_USER  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$MY_USER stdout> /dev/null # https://linuxize.com/post/how-to-add-user-to-sudoers-in-ubuntu/  
+  sudo chmod 0440 /etc/sudoers.d/$MY_USER 
+  echo "$MY_USER added to sudoers"
 fi
 
 ## we need the package name
-read -p 'Enter package name: ' package #promp the user and reads a line with the user input from stdin
+read -p 'Enter package name: ' PACKAGE #promp the user and reads a line with the user input from stdin
 
 ## we need to know id we are going to install from source or from .deb package
-read -p 'Enter s to install from source or p from dpkg/rpm: ' source
+read -p 'Enter s to install from source or p from dpkg/rpm: ' SOURCE
 
 ## we need the link to the source/package
-read -p 'Enter the download link: ' downloadLink
+read -p 'Enter the download link: ' DOWNLOAD_LINK
 
 ## for the user to see what is was typed and for debugging
-echo package: $package, source: $source, downloadLink: $downloadLink
+echo package: $PACKAGE, source: $SOURCE, download link: $DOWNLOAD_LINK
 
 ## the place to keep the source/package files
-inst_path=/usr/local/src
+INST_PATH=/usr/local/src
 
-##keeping som echos for debug
-#echo $(ls -ldh $inst_path | cut -d " " -f1) 
-
-## extract the Others permitions on the inst_path (instalation path)
-# this is a bit misleading as this is actually the path to the source
-gr=$(ls -ldh $inst_path | cut -d " " -f1| cut -c 8-10) ## we would like to know 
-                                                       # if Others need permitions
-						       # to write, we first list 
-						       # the directory info with 'ls'
-						       # and use 'cut' to split 
-						       # the output delimited by space
-						       # and as the permitions are 
-						       # in the first column we get only that
-						       # we then extract the last 3 chars
-						       # as they show the Others rights                                                        # on the directory  
-
-if [[ "$gr" == *"-"* ]]; then # we check if there is any missing permition for Others
-  echo setting others to have +rwx
-  sudo chmod o+rwx $inst_path # if there is, we assign all rights /sudo was here 
+# new, I just give the rights to others instead of checking if rights are needed, its simple 
+sudo chmod o+rwx $INST_PATH   # we assign all rights 
                               # with 'chmod' using temporary root rights via sudo
 			      # this will turn the sticky bit on the directory on 
 			      # making unlinking and renaming of files a privilage 
@@ -50,32 +35,35 @@ if [[ "$gr" == *"-"* ]]; then # we check if there is any missing permition for O
 			      # https://en.wikipedia.org/wiki/Sticky_bit
 			      # nice history article can be found here:
 			      # https://www.thegeekstuff.com/2013/02/sticky-bit/ 
-fi
 
-$(wget -v  $downloadLink -P $inst_path) # we download the source/pack in the target
 
-if [[ "$source" == *"s"* ]]; then # if you type more than a 's' you are ..
+# https://superuser.com/questions/301044/how-to-wget-a-file-with-correct-name-when-redirected
+# curl can be used instead here 
+
+$(wget -v  $DOWNLOAD_LINK -P $INST_PATH) # we download the source/pack in the target
+
+if [[ "$SOURCE" == *"s"* ]]; then # if you type more than a 's' you are ..
 	                          # just type 's' for source 
   echo insalling from source
-  echo this is the result: $(echo ${downloadLink##*/})        # for debug
-  echo the path: "$inst_path/${downloadLink##*/}"             # for debug
+  echo this is the result: $(echo ${DOWNLOAD_LINK##*/})        # for debug
+  echo the path: "$INST_PATH/${DOWNLOAD_LINK##*/}"             # for debug
   
   #-xzf for .gz, 
   # so yes we support only .biz, this was used for testing..we will fix it in the future
-  $(cd $inst_path ; tar -xjf ${downloadLink##*/} ) 
+  $(cd $INST_PATH ; tar -xjf ${DOWNLOAD_LINK##*/} ) 
   # https://www.howtogeek.com/409742/how-to-extract-files-from-a-.tar.gz-or-.tar.bz2-file-on-linux/
 
-  unzip_path=$(ls -l -d /usr/local/src/*/ | grep $package | head -1) 
+  UNZIP_PATH=$(ls -l -d /usr/local/src/*/ | grep $PACKAGE | head -1) 
   # we need the directory where we dupmped the files
   # so we list the directories, we filter by package name provided by the user and 
   # we get the first result we get as the true
   # there are many things that can go wrong here 
   # sorting by date of creation and getting the first line might be a better solution 
 
-  #echo first unzip_path $unzip_path
-  unzip_path=$(echo $unzip_path | rev | cut -d " " -f1 | rev)
+  #echo first unzip_path $UNZIP_PATH
+  UNZIP_PATH=$(echo $UNZIP_PATH | rev | cut -d " " -f1 | rev)
   # this was a funny solution to get the last part by reversing twice and using 'cut' 
-  #echo second unzip_path $unzip_path
+  #echo second unzip_path $UNZIP_PATH
 
   handle_errors(){ 
 	  ## this recursive function does more than just handle errors 
@@ -92,21 +80,21 @@ if [[ "$source" == *"s"* ]]; then # if you type more than a 's' you are ..
        echo done
     else                   # and the first call and when there are errors 
        echo cónfiguring..     
-       er=""
-       er=$(cd $unzip_path; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
+       ERROR=""
+       ERROR=$(cd $UNZIP_PATH; echo "" > er_tmp; echo "" > er_fin; ./configure >/dev/null 2> er_tmp; cat er_tmp | awk -F'error:' '{print $2}' > er_fin; cat er_fin  )
        ## and yes I am using temporary files, I know it is recomended against it 
        # but to make it work I needed to do it as a start 
        # and I can see now that is still here, and I need to remove the files in the end.
        # I use 'awk' here as it is easyer to use when there is a string of more than 
        # one char as a separtor as for 'error:', I just discard stdout and keep stderr 
        
-       if [[ $er ]]; then # if the error string is not empty there are errors  
+       if [[ $ERROR ]]; then # if the error string is not empty there are errors  
          ##
 	 echo missing libraries are installing..
 	 sudo apt-get -y update 2> /dev/null  ## we update using apt-get before installing /sudo was here 
 	                                      # and saying yes to all the questions, 
 					      # maybe not that smart for some packages 
-         for X in $er # for each word separated by space in the error message
+         for X in $ERROR # for each word separated by space in the error message
 	  do 
 	    sudo apt-get -y install $X 2> /dev/null # try to install assuming a package /sudo was here
 	                                            # and discard error msg   
@@ -124,35 +112,34 @@ if [[ "$source" == *"s"* ]]; then # if you type more than a 's' you are ..
   handle_errors 2  # call the function to handle the ./configure hell 
 	
   ##do make
-  echo executing make in: $unzip_path
-  cd $unzip_path && sudo make # /sudo was here 
+  echo executing make in: $UNZIP_PATH
+  cd $UNZIP_PATH && sudo make  
  
   ##do checkinstall
-  echo executing checkinstall in: $unzip_path
-  cd $unzip_path && sudo checkinstall -y     # you need to have the checkinstall pre-installed /sudo was here
+  echo executing checkinstall in: $UNZIP_PATH
+  cd $UNZIP_PATH && sudo checkinstall -y     # you need to have the checkinstall pre-installed 
 
 
 #we have a .deb file to install  
 else
-  pack_name=$(cd $inst_path && ls | grep '\.deb$' | grep $package | head -n1)
-  cd $inst_path && mkdir $pack_name
-  #pack_name_path="$inst_path/$pack_name"   
-  pd=$(cd $inst_path; echo "" > pd_tmp && dpkg-deb -I $pack_name > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
+  PACK_NAME=$(cd $INST_PATH && ls | grep '\.deb$' | grep $PACKAGE | head -n1)
+  cd $INST_PATH && mkdir $PACK_NAME
+  DEB_DEPENDS=$(cd $INST_PATH; echo "" > pd_tmp && dpkg-deb -I $PACK_NAME > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
   
   echo missing libraries are installing..
-  sudo apt-get -y update 2> /dev/null   # /sudo was here 
-  for X in $pd 
+  sudo apt-get -y update 2> /dev/null   
+  for X in $DEB_DEPENDS 
     do 
-      sudo apt-get -y install $X 2> /dev/null ; # sudo was here
+      sudo apt-get -y install $X 2> /dev/null ;
   done
   
-  echo installing.. $pack_name
-  cd $inst_path && sudo dpkg -i $pack_name; #sudo apt-get -y install $pack_name # /sudo was here
+  echo installing.. $PACK_NAME
+  cd $INST_PATH && sudo dpkg -i $PACK_NAME; 
 
 fi
 
 ## we don't need sudo rights anymore 
-sudo rm /etc/sudoers.d/$my_user 
+sudo rm /etc/sudoers.d/$MY_USER 
 
 
 ### helping stuff during development - skip it ###
