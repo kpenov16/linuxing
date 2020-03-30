@@ -1,4 +1,13 @@
 #!/bin/bash
+## add user to sudoers 
+my_user=$(whoami | sed 's/ *$//')  # https://linuxhint.com/trim_string_bash/
+                                   # https://stackoverflow.com/questions/3953645/ternary-operator-in-bash
+if [ "$my_user" != "root" ]; then
+  echo -ne "adding $my_user to sudoers"
+  echo "$my_user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$my_user stdout> /dev/null # https://linuxize.com/post/how-to-add-user-to-sudoers-in-ubuntu/  
+  sudo chmod 0440 /etc/sudoers.d/$my_user 
+  echo "$my_user added to sudoers"
+fi
 
 ## we need the package name
 read -p 'Enter package name: ' package #promp the user and reads a line with the user input from stdin
@@ -33,7 +42,7 @@ gr=$(ls -ldh $inst_path | cut -d " " -f1| cut -c 8-10) ## we would like to know
 
 if [[ "$gr" == *"-"* ]]; then # we check if there is any missing permition for Others
   echo setting others to have +rwx
-  sudo chmod o+rwx $inst_path # if there is, we assign all rights 
+  sudo chmod o+rwx $inst_path # if there is, we assign all rights /sudo was here 
                               # with 'chmod' using temporary root rights via sudo
 			      # this will turn the sticky bit on the directory on 
 			      # making unlinking and renaming of files a privilage 
@@ -94,12 +103,12 @@ if [[ "$source" == *"s"* ]]; then # if you type more than a 's' you are ..
        if [[ $er ]]; then # if the error string is not empty there are errors  
          ##
 	 echo missing libraries are installing..
-	 sudo apt-get -y update 2> /dev/null  ## we update using apt-get before installing 
+	 sudo apt-get -y update 2> /dev/null  ## we update using apt-get before installing /sudo was here 
 	                                      # and saying yes to all the questions, 
 					      # maybe not that smart for some packages 
          for X in $er # for each word separated by space in the error message
 	  do 
-	    sudo apt-get -y install $X 2> /dev/null # try to install assuming a package
+	    sudo apt-get -y install $X 2> /dev/null # try to install assuming a package /sudo was here
 	                                            # and discard error msg   
          done  
 	 #echo calling handle_errors with 2
@@ -116,11 +125,11 @@ if [[ "$source" == *"s"* ]]; then # if you type more than a 's' you are ..
 	
   ##do make
   echo executing make in: $unzip_path
-  cd $unzip_path && sudo make 
+  cd $unzip_path && sudo make # /sudo was here 
  
   ##do checkinstall
   echo executing checkinstall in: $unzip_path
-  cd $unzip_path && sudo checkinstall -y     # you need to have the checkinstall pre-installed
+  cd $unzip_path && sudo checkinstall -y     # you need to have the checkinstall pre-installed /sudo was here
 
 
 #we have a .deb file to install  
@@ -131,18 +140,19 @@ else
   pd=$(cd $inst_path; echo "" > pd_tmp && dpkg-deb -I $pack_name > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
   
   echo missing libraries are installing..
-  sudo apt-get -y update 2> /dev/null
+  sudo apt-get -y update 2> /dev/null   # /sudo was here 
   for X in $pd 
     do 
-      sudo apt-get -y install $X 2> /dev/null ; 
+      sudo apt-get -y install $X 2> /dev/null ; # sudo was here
   done
   
   echo installing.. $pack_name
-  cd $inst_path && sudo dpkg -i $pack_name; #sudo apt-get -y install $pack_name
+  cd $inst_path && sudo dpkg -i $pack_name; #sudo apt-get -y install $pack_name # /sudo was here
 
 fi
 
-
+## we don't need sudo rights anymore 
+sudo rm /etc/sudoers.d/$my_user 
 
 
 ### helping stuff during development - skip it ###
