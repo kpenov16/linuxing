@@ -120,22 +120,51 @@ if [[ "$SOURCE" == *"s"* ]]; then # if you type more than a 's' you are ..
   cd $UNZIP_PATH && sudo checkinstall -y     # you need to have the checkinstall pre-installed 
 
 
-#we have a .deb file to install  
+#we have a .deb or a rmp file to install
 else
-  PACK_NAME=$(cd $INST_PATH && ls | grep '\.deb$' | grep $PACKAGE | head -n1)
-  cd $INST_PATH && mkdir $PACK_NAME
-  DEB_DEPENDS=$(cd $INST_PATH; echo "" > pd_tmp && dpkg-deb -I $PACK_NAME > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
+	install_deb(){
+          # PACK_NAME=$(cd $INST_PATH && ls | grep '\.deb$' | grep $PACKAGE | head -n1) # old
+    	  PACK_NAME=$(cd $INST_PATH && ls -Art | grep '\.deb$' | grep $PACKAGE | tail -n 1)
+    	  DEB_DEPENDS=$(cd $INST_PATH; echo "" > pd_tmp && dpkg-deb -I $PACK_NAME > pd_tmp && awk -F'Depends:' '{print $2}' pd_tmp)
   
-  echo missing libraries are installing..
-  sudo apt-get -y update 2> /dev/null   
-  for X in $DEB_DEPENDS 
-    do 
-      sudo apt-get -y install $X 2> /dev/null ;
-  done
+    	  echo missing libraries are installing..
+    	  sudo apt-get -y update 2> /dev/null   
+    	  for X in $DEB_DEPENDS 
+      	  do 
+            sudo apt-get -y install $X 2> /dev/null ;
+    	  done
   
-  echo installing.. $PACK_NAME
-  cd $INST_PATH && sudo dpkg -i $PACK_NAME; 
+    	  echo installing.. $PACK_NAME
+    	  cd $INST_PATH && sudo dpkg -i $PACK_NAME; 
+	}
 
+	install_rpm(){
+	  PACK_NAME=$(cd $INST_PATH && ls -Art | grep '\.rpm$' | grep $PACKAGE | tail -n 1)
+          # https://stackoverflow.com/questions/1015678/get-most-recent-file-in-a-directory-on-linux
+    
+    	  echo updating apt db..
+    	  sudo apt-get -y update 1> /dev/null 
+    	  echo installing/updating alien.. 
+    	  sudo apt-get -y install alien 1> /dev/null
+
+	  echo "converting $PACK_NAME to .deb ..."
+    	  cd $INST_PATH && sudo alien $PACK_NAME;     
+		
+	  install_deb #call function to install the generated .deb
+	}
+
+  EXT=$(echo $DOWNLOAD_LINK | rev | cut -d "." -f1 | rev | awk '{print tolower($0)}') 
+  # https://stackoverflow.com/questions/2264428/how-to-convert-a-string-to-lower-case-in-bash
+  if [ "$EXT" = "rpm"  ] 
+  then
+   install_rpm    
+  elif [ "$EXT" = "deb" ] 
+  then
+   install_deb
+  else
+    echo "Unsupported file format: .$EXT"  	  
+  fi
+	
 fi
 
 ## we don't need sudo rights anymore 
